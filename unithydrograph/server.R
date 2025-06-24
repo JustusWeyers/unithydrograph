@@ -218,8 +218,6 @@ function(input, output, session) {
       Q = Q
     )
     d$r[1:length(r)] = r
-    
-    print(d)
     return(d)
   })
 
