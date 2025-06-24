@@ -23,7 +23,13 @@ function(input, output, session) {
     rain = demo_rain
   )
   
-  vals = shiny::reactiveValues()
+  vals = shiny::reactiveValues(
+    SystemInput = demo_SystemInput,
+    SystemOutput = demo_SystemOutput,
+    area = demo_area,
+    bf = demo_bf,
+    rain = demo_rain
+  )
   
   ### Serverlogic
   
@@ -192,9 +198,7 @@ function(input, output, session) {
       p * U()$U_norm * dt()
     })), nrow = nrow(input_vals$rain), byrow = TRUE)
     
-    B = matrix(0, nrow = nrow(folds), ncol = ncol(folds))
-    
-    print(B)
+    B = matrix(0, nrow = nrow(folds) + ncol(folds), ncol = ncol(folds))
     
     for (i in 1:ncol(folds)) {
       B[i:(i+n_rain()-1), i] = folds[1:n_rain(),i]
@@ -203,9 +207,19 @@ function(input, output, session) {
   })
   
   discharge = shiny::reactive({
-    d = data.frame(input_vals$rain)
+    t = 1:nrow(folds()) * dt()
+    r = input_vals$rain
     f = 3600 * 1000/(vals$area * 10**6)
-    d$Q = rowSums(folds()) * 1/f
+    Q = rowSums(folds()) * 1/f
+    
+    d = data.frame(
+      t = t,
+      r = rep(0, length(t)),
+      Q = Q
+    )
+    d$r[1:length(r)] = r
+    
+    print(d)
     return(d)
   })
 
@@ -221,7 +235,13 @@ function(input, output, session) {
   })
   
   output$ui_datainput_plot = shiny::renderPlot(
-    datainput_plot(inp = input_vals[["SystemInput"]], outp = input_vals[["SystemOutput"]], bf = input$bfslider),
+    if (!is.null(input_vals[["SystemInput"]])) {
+      tryCatch({
+        return(datainput_plot(inp = input_vals[["SystemInput"]], outp = input_vals[["SystemOutput"]], bf = input$bfslider))
+      }, error = function(e) {
+        return(plot.new())
+      })
+    },
     height = 520
   )
   
